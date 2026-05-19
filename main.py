@@ -1,0 +1,147 @@
+# main.py
+# Entry point for the permission request automation system.
+# Accepts input from command line or a JSON file.
+
+import sys
+import os
+import json
+
+from engine.workflow import run
+from audit.logger    import show_log
+from jira.ticket     import check_sla_breaches
+from config.settings import JIRA_PROJECT
+
+
+def get_input_from_commandline():
+    """
+    Asks the user for request details interactively.
+    """
+    print("\nEnter request details:")
+    user_id       = input("User ID: ").strip()
+    system        = input("System name: ").strip()
+    justification = input("Justification: ").strip()
+    return user_id, system, justification
+
+
+def get_input_from_file(filepath):
+    """
+    Reads request details from a JSON file.
+    Useful for automated triggers from HR systems.
+
+    Expected format:
+    {
+        "user_id": "abc-123",
+        "system": "SharePoint",
+        "justification": "Required for Q3 project"
+    }
+    """
+    try:
+        with open(filepath, "r") as f:
+            data = json.load(f)
+
+        user_id       = data.get("user_id", "")
+        system        = data.get("system", "")
+        justification = data.get("justification", "")
+        return user_id, system, justification
+
+    except FileNotFoundError:
+        print(f"File not found: {filepath}")
+        sys.exit(1)
+
+    except json.JSONDecodeError as e:
+        print(f"Invalid JSON in file: {e}")
+        sys.exit(1)
+
+
+def check_sla():
+    """
+    Checks for overdue approval tickets.
+    Can be run on a schedule to catch stale requests.
+    """
+    print("\nChecking for SLA breaches...")
+    overdue = check_sla_breaches(JIRA_PROJECT)
+
+    if not overdue:
+        print("No overdue tickets found")
+    else:
+        print(f"Found {len(overdue)} overdue tickets")
+        print("These tickets need attention:")
+        for ticket in overdue:
+            key     = ticket["key"]
+            summary = ticket["fields"]["summary"]
+            print(f"  {key}: {summary}")
+
+
+def show_menu():
+    """
+    Shows the main menu options.
+    """
+    print("\n" + "=" * 55)
+    print("Permission Request Automation System")
+    print("=" * 55)
+    print("1 — New request (command line)")
+    print("2 — New request (from request.json)")
+    print("3 — Check SLA breaches")
+    print("4 — View audit log")
+    print("5 — Exit")
+    print("=" * 55)
+
+
+if __name__ == "__main__":
+
+    # If a file path is passed as argument — skip menu
+    if len(sys.argv) > 1:
+        filepath = sys.argv[1]
+        print(f"Reading request from: {filepath}")
+        user_id, system, justification = get_input_from_file(
+            filepath
+        )
+        success = run(user_id, system, justification)
+        show_log()
+        sys.exit(0 if success else 1)
+
+    # Otherwise show menu
+    while True:
+        show_menu()
+        choice = input("\nEnter choice: ").strip()
+
+        if choice == "1":
+            user_id, system, justification = (
+                get_input_from_commandline()
+            )
+            run(user_id, system, justification)
+            show_log()
+
+        elif choice == "2":
+            # Check if request.json exists
+            if not os.path.isfile("request.json"):
+                # Create a sample file
+                sample = {
+                    "user_id":       "your-user-object-id",
+                    "system":        "SharePoint",
+                    "justification": "Required for Q3 project work"
+                }
+                with open("request.json", "w") as f:
+                    json.dump(sample, f, indent=4)
+                print("\nCreated sample request.json")
+                print("Edit it with your details then")
+                print("choose option 2 again")
+            else:
+                user_id, system, justification = (
+                    get_input_from_file("request.json")
+                )
+                run(user_id, system, justification)
+                show_log()
+
+        elif choice == "3":
+            check_sla()
+
+        elif choice == "4":
+            show_log()
+
+        elif choice == "5":
+            print("\nExiting")
+            break
+
+        else:
+            print("Invalid choice — enter 1 to 5")

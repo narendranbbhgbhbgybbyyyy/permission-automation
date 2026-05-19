@@ -1,0 +1,16 @@
+{
+    "SharePoint-ReadOnly": {
+        "risk": "low",
+        "approver_group": null,
+        "fallback_approver": null,
+        "sla_hours": 0,
+        "description": "SharePoint read only access - low risk - auto approved"
+    },
+    "SharePoint-FullAccess": {
+        "risk": "high",
+        "approver_group": "SG-SharePoint-Approvers",
+        "fallback_approver": "it-manager@company.com",
+        "sla_hours": 4,
+        "description": "SharePoint full access - high risk - needs approval"
+    }
+}
