@@ -1,7 +1,0 @@
-config/.env
-audit_log.csv
-request.json
-__pycache__/
-*.pyc
-*.pyo
-.vscode/git rm --cached audit/.gitignore
