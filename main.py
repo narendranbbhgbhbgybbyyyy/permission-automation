@@ -11,7 +11,7 @@ from config.settings import JIRA_PROJECT
 
 
 def get_input_from_commandline():
-    """Asks the user for request details interactively."""
+    
     print("\nEnter request details:")
     user_id       = input("User ID: ").strip()
     system        = input("System name: ").strip()
@@ -75,7 +75,7 @@ def show_menu():
 
 if __name__ == "__main__":
 
-    # If a file path passed as argument — skip menu
+  
     if len(sys.argv) > 1:
         filepath = sys.argv[1]
         print(f"Reading request from: {filepath}")
