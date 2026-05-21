@@ -1,6 +1,3 @@
-# jira/client.py
-# All Jira REST API calls in one place.
-# Official docs: developer.atlassian.com/cloud/jira/platform/rest/v3/
 
 import requests
 import os
@@ -11,15 +8,11 @@ from config.settings import JIRA_BASE_URL, JIRA_AUTH, JIRA_HEADERS
 
 
 def create_issue(summary, description_text, priority="Medium"):
-    """
-    Creates a Jira ticket.
-    Description must be ADF format — plain text returns 400.
-    Returns issue key on success, None on failure.
-    """
+
 
     url = f"{JIRA_BASE_URL}/rest/api/3/issue"
 
-    # ADF format required by Jira API v3
+    
     description = {
         "type": "doc",
         "version": 1,
@@ -69,10 +62,7 @@ def create_issue(summary, description_text, priority="Medium"):
 
 
 def get_issue_status(issue_key):
-    """
-    Gets the current status of a Jira ticket.
-    Returns dict with status and resolution, or None on failure.
-    """
+
 
     url    = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
     params = {"fields": "status,resolution"}
@@ -106,11 +96,7 @@ def get_issue_status(issue_key):
 
 
 def add_comment(issue_key, comment_text):
-    """
-    Adds a comment to a Jira ticket.
-    Comment body requires ADF format — same as description.
-    Returns True on success.
-    """
+
 
     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/comment"
 
@@ -141,12 +127,7 @@ def add_comment(issue_key, comment_text):
 
 
 def search_issues(jql, fields=None):
-    """
-    Searches Jira tickets using JQL.
-    JQL is Jira Query Language — like SQL for Jira.
-    Used for SLA breach detection.
-    Returns list of issues.
-    """
+
 
     url    = f"{JIRA_BASE_URL}/rest/api/3/issue/search"
     params = {

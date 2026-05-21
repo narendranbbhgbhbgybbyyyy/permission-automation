@@ -1,6 +1,3 @@
-# graph/provisioner.py
-# Adds and removes users from Entra ID security groups
-# Official docs: learn.microsoft.com/graph/api/group-post-members
 
 import requests
 import time
@@ -12,11 +9,7 @@ from config.settings import GRAPH_BASE
 
 
 def add_user(token, user_id, group_id):
-    """
-    Adds a user to an Entra ID security group.
-    Returns True on success, False on failure.
-    204 No Content = success — Graph API returns no body.
-    """
+
 
     url     = f"{GRAPH_BASE}/groups/{group_id}/members/$ref"
     headers = {
@@ -57,11 +50,7 @@ def add_user(token, user_id, group_id):
 
 
 def remove_user(token, user_id, group_id):
-    """
-    Removes a user from an Entra ID security group.
-    Used for permission removal and leaver flows.
-    Returns True on success, False on failure.
-    """
+
 
     url     = (f"{GRAPH_BASE}/groups/{group_id}"
                f"/members/{user_id}/$ref")
@@ -72,7 +61,7 @@ def remove_user(token, user_id, group_id):
             url, headers=headers, timeout=10
         )
 
-        # 204 = success
+        
         if response.status_code == 204:
             print(f"  User removed from group")
             return True
@@ -91,11 +80,7 @@ def remove_user(token, user_id, group_id):
 
 
 def verify_membership(token, user_id, group_id):
-    """
-    Checks if a user is in a group.
-    Retries 3 times — Graph API takes a few seconds to update.
-    Returns True if confirmed, False otherwise.
-    """
+   
 
     url     = f"{GRAPH_BASE}/groups/{group_id}/members"
     headers = {"Authorization": f"Bearer {token}"}

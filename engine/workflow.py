@@ -1,7 +1,3 @@
-# engine/workflow.py
-# Orchestrates the entire permission request flow.
-# Calls validator, classifier, jira, graph, and audit logger.
-
 import sys
 import os
 import time
@@ -21,11 +17,8 @@ from audit.logger      import (write_log, log_request_received,
 
 
 def get_group_id(system):
-    """
-    Reads GROUP_MAPPING fresh every time.
-    Avoids stale import issues.
-    """
-    # Re-import settings fresh to get latest values
+    
+    
     if "config.settings" in sys.modules:
         del sys.modules["config.settings"]
 
@@ -35,13 +28,7 @@ def get_group_id(system):
 
 
 def run(user_id, system, justification):
-    """
-    Runs the complete permission request workflow.
-
-    Two paths:
-    1. Low risk  — auto approve and grant access immediately
-    2. High risk — create Jira ticket, wait for approval
-    """
+    
 
     print(f"\n{'='*55}")
     print(f"Permission Request")
@@ -51,7 +38,7 @@ def run(user_id, system, justification):
     print(f"Reason : {justification}")
     print(f"{'='*55}")
 
-    # Step 1: Validate
+    
     print("\nStep 1 — Validating request...")
     errors = validate(user_id, system, justification)
 
@@ -64,7 +51,7 @@ def run(user_id, system, justification):
 
     print("  Request is valid")
 
-    # Step 2: Classify
+    
     print("\nStep 2 — Checking risk level...")
     result   = classify(system)
     risk     = result["risk"]
@@ -75,7 +62,7 @@ def run(user_id, system, justification):
 
     log_request_received(user_id, system, risk)
 
-    # Step 3: Get Graph token
+    
     print("\nStep 3 — Getting Graph API token...")
     token = get_token()
 
@@ -86,7 +73,7 @@ def run(user_id, system, justification):
 
     print("  Token received")
 
-    # Step 4: Get group ID
+    
     group_id = get_group_id(system)
 
     if not group_id:
@@ -95,7 +82,7 @@ def run(user_id, system, justification):
         log_access_failed(user_id, system, "No group ID")
         return False
 
-    # Path A: Auto approve (low risk)
+   
     if decision == "auto_approve":
         print(f"\nStep 4 — Auto approving (low risk)...")
         log_auto_approved(user_id, system)
@@ -103,7 +90,7 @@ def run(user_id, system, justification):
                             system, group_id,
                             ticket_key="auto")
 
-    # Path B: Needs approval (high risk)
+    
     print(f"\nStep 4 — Creating approval ticket in Jira...")
 
     ticket = create_approval_ticket(
@@ -121,7 +108,7 @@ def run(user_id, system, justification):
 
     log_approval_required(user_id, system, risk, ticket)
 
-    # Step 5: Wait for approval
+   
     print(f"\nStep 5 — Waiting for approval...")
     outcome = poll_for_approval(
         issue_key = ticket,
@@ -130,7 +117,7 @@ def run(user_id, system, justification):
         sla_hours = result["sla_hours"]
     )
 
-    # Step 6: Act on outcome
+    
     if outcome == "approved":
         log_ticket_approved(user_id, system, ticket)
         return grant_access(token, user_id,
@@ -152,10 +139,7 @@ def run(user_id, system, justification):
 
 def grant_access(token, user_id, system,
                  group_id, ticket_key="auto"):
-    """
-    Adds user to Entra ID group and verifies membership.
-    Called for both auto-approved and manually approved requests.
-    """
+
 
     print(f"\n  Granting access to {system}...")
     print(f"  Adding user to Entra ID group...")
@@ -168,7 +152,7 @@ def grant_access(token, user_id, system,
 
     log_access_granted(user_id, system, ticket_key)
 
-    # Wait for Graph API to propagate
+    
     print("  Verifying membership...")
     time.sleep(5)
 
@@ -189,10 +173,7 @@ def grant_access(token, user_id, system,
 
 
 def remove_access(token, user_id, system, group_id, reason):
-    """
-    Removes a user from an Entra ID group.
-    Used for permission removal and leaver flows.
-    """
+   
 
     print(f"\n  Removing access to {system}...")
 

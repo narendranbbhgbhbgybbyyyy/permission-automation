@@ -1,6 +1,3 @@
-# jira/ticket.py
-# Ticket creation, polling, and SLA checking.
-# Built on top of jira/client.py
 
 import time
 import csv
@@ -14,10 +11,7 @@ from config.settings import JIRA_BASE_URL, SYSTEMS
 
 def build_description(user_id, system, justification,
                       risk_level, approver_group):
-    """
-    Builds the ticket description with all context
-    the approver needs to make a decision.
-    """
+
     system_desc = SYSTEMS.get(system, {}).get("description", system)
 
     return (
@@ -35,10 +29,7 @@ def build_description(user_id, system, justification,
 
 def create_approval_ticket(user_id, system, justification,
                            risk_level, approver_group):
-    """
-    Creates a Jira approval ticket with full context pre-filled.
-    Returns issue key on success, None on failure.
-    """
+
 
     priority_map = {"low": "Low", "medium": "Medium", "high": "High"}
 
@@ -71,11 +62,7 @@ def create_approval_ticket(user_id, system, justification,
 
 
 def poll_for_approval(issue_key, interval=30, max_polls=20, sla_hours=8):
-    """
-    Checks ticket status every interval seconds.
-    Returns approved / rejected / timeout.
-    Sends SLA warning comment at the halfway point.
-    """
+
 
     print(f"\n  Monitoring ticket {issue_key}...")
     print(f"  Checking every {interval} seconds")
@@ -104,7 +91,7 @@ def poll_for_approval(issue_key, interval=30, max_polls=20, sla_hours=8):
                 print(f"\n  REJECTED — no access granted")
                 return "rejected"
 
-        # Send SLA warning once at halfway point
+        
         elapsed += interval
         if not sla_warning_sent and sla_hours > 0 and elapsed >= half_sla:
             add_comment(
@@ -119,7 +106,7 @@ def poll_for_approval(issue_key, interval=30, max_polls=20, sla_hours=8):
         if poll < max_polls:
             time.sleep(interval)
 
-    # Timed out — get fallback contact from systems.json
+    
     fallback = SYSTEMS.get(issue_key, {}).get("fallback_approver", "")
     timeout_msg = "TIMEOUT: This ticket was not actioned in time. Manual review required."
     if fallback:
@@ -131,11 +118,7 @@ def poll_for_approval(issue_key, interval=30, max_polls=20, sla_hours=8):
 
 
 def check_sla_breaches(project):
-    """
-    Checks open approval tickets for SLA breaches.
-    Reads ticket keys from audit_log.csv and checks each directly.
-    Adds escalation comment to any still open.
-    """
+
 
     log_file = "audit_log.csv"
 
@@ -143,7 +126,7 @@ def check_sla_breaches(project):
         print("  No audit log found — no tickets to check")
         return []
 
-    # Find all tickets created for approval
+    
     pending = []
     with open(log_file, "r") as f:
         reader = csv.DictReader(f)
@@ -153,7 +136,7 @@ def check_sla_breaches(project):
                     row["ticket_key"] != "auto"):
                 pending.append(row["ticket_key"])
 
-    # Remove duplicates
+
     pending = list(set(pending))
 
     if not pending:
@@ -172,7 +155,7 @@ def check_sla_breaches(project):
         status = result["status"]
         print(f"  → {key}: {status}")
 
-        # Only escalate tickets still open
+        
         if status not in ["Done", "Cancelled", "Rejected"]:
             overdue.append(key)
             add_comment(

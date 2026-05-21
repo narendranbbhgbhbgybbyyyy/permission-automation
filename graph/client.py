@@ -1,6 +1,3 @@
-# graph/client.py
-# Gets access token from Microsoft identity platform
-# Official docs: learn.microsoft.com/graph/auth-v2-service
 
 import requests
 import sys
@@ -12,16 +9,12 @@ from config.settings import (GRAPH_TENANT_ID, GRAPH_CLIENT_ID,
 
 
 def get_token():
-    """
-    Gets OAuth2 token using client credentials flow.
-    No user login needed — app authenticates as itself.
-    Returns token string or None if failed.
-    """
+    
 
     url = (f"https://login.microsoftonline.com/"
            f"{GRAPH_TENANT_ID}/oauth2/v2.0/token")
 
-    # Must be form-encoded not JSON
+    
     body = {
         "grant_type":    "client_credentials",
         "client_id":     GRAPH_CLIENT_ID,
