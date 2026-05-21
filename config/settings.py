@@ -2,7 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 
-# Load .env from config folder
+
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(dotenv_path=dotenv_path, override=True)
 
@@ -34,10 +34,7 @@ GROUP_MAPPING = {
 SYSTEMS_FILE = os.path.join(os.path.dirname(__file__), "systems.json")
 
 def load_systems():
-    """
-    Loads system risk configuration from systems.json.
-    Called fresh each time — config changes take effect immediately.
-    """
+    
     try:
         with open(SYSTEMS_FILE, "r") as f:
             return json.load(f)
