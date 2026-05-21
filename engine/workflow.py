@@ -127,7 +127,6 @@ def run(user_id, system, justification):
         issue_key = ticket,
         interval  = 30,
         max_polls = 20,
-        system    = system,
         sla_hours = result["sla_hours"]
     )
 

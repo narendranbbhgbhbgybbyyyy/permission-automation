@@ -1,49 +1,17 @@
-# ============================================================
-# audit/logger.py
-# Structured audit logging for every action in the system.
-# Built first — everything else uses this.
-#
-# Security principles:
-# - UTC timestamps always — never local time
-# - Record IDs only — no personal data values
-# - Log write failures never crash the main process
-# - Tamper-resistant — append only, no delete
-# ============================================================
-
 import csv
 import os
 from datetime import datetime, timezone
 
 LOG_FILE = "audit_log.csv"
 
-# All possible fields in every log entry
-FIELDS = [
-    "timestamp",
-    "action",
-    "user_id",
-    "system",
-    "risk_level",
-    "ticket_key",
-    "result",
-    "detail"
-]
+FIELDS = ["timestamp", "action", "user_id",
+          "system", "risk_level", "ticket_key",
+          "result", "detail"]
 
 
-def write_log(action, result,
-              user_id="",
-              system="",
-              risk_level="",
-              ticket_key="",
-              detail=""):
-    """
-    Writes a structured audit log entry to CSV.
+def write_log(action, result, user_id="", system="",
+              risk_level="", ticket_key="", detail=""):
 
-    Rules:
-    - Timestamp always UTC
-    - user_id is an ID not a name — no personal data
-    - detail field never contains credential values
-    - Log write failure never crashes the calling code
-    """
     timestamp  = datetime.now(timezone.utc).isoformat()
     log_exists = os.path.isfile(LOG_FILE)
 
@@ -62,17 +30,11 @@ def write_log(action, result,
                 "result":     result,
                 "detail":     detail
             })
-
     except IOError as e:
-        # Never crash — just warn
-        print(f"  [AUDIT WARNING] Could not write log: {e}")
+        print(f"  Could not write to audit log: {e}")
 
 
 def show_log():
-    """
-    Displays the full audit log in a readable format.
-    Called at end of every run.
-    """
     if not os.path.isfile(LOG_FILE):
         print("No audit log found")
         return
@@ -83,16 +45,12 @@ def show_log():
     print(f"{'Timestamp':<28} {'Action':<30} {'Result':<10} {'System'}")
     print("-" * 80)
 
-    try:
-        with open(LOG_FILE, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                print(f"{row['timestamp']:<28} "
-                      f"{row['action']:<30} "
-                      f"{row['result']:<10} "
-                      f"{row['system']}")
-    except IOError as e:
-        print(f"Could not read log: {e}")
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            print(f"{row['timestamp']:<28} "
+                  f"{row['action']:<30} "
+                  f"{row['result']:<10} "
+                  f"{row['system']}")
 
 
 def log_request_received(user_id, system, risk_level):

@@ -1,33 +1,19 @@
-# ============================================================
 # jira/client.py
 # All Jira REST API calls in one place.
-# Nothing else in the system calls Jira directly.
-# If Jira changes their API — update this file only.
-#
-# Official docs:
-# developer.atlassian.com/cloud/jira/platform/rest/v3/
-# ============================================================
+# Official docs: developer.atlassian.com/cloud/jira/platform/rest/v3/
 
 import requests
-import sys
 import os
+import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config.settings import JIRA_BASE_URL, JIRA_AUTH, JIRA_HEADERS
 
 
-# ============================================================
-# CREATE ISSUE
-# POST /rest/api/3/issue
-# Required: project.key, summary, issuetype.name
-# Response: 201 Created — body contains issue key
-# Description must be ADF format — plain text returns 400
-# ============================================================
-def create_issue(summary, description_text,
-                 priority="Medium", issue_type="Task"):
+def create_issue(summary, description_text, priority="Medium"):
     """
     Creates a Jira ticket.
-    Description automatically converted to ADF format.
+    Description must be ADF format — plain text returns 400.
     Returns issue key on success, None on failure.
     """
 
@@ -37,17 +23,10 @@ def create_issue(summary, description_text,
     description = {
         "type": "doc",
         "version": 1,
-        "content": [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": description_text
-                    }
-                ]
-            }
-        ]
+        "content": [{
+            "type": "paragraph",
+            "content": [{"type": "text", "text": description_text}]
+        }]
     }
 
     payload = {
@@ -55,7 +34,7 @@ def create_issue(summary, description_text,
             "project":     {"key": os.getenv("JIRA_PROJECT", "ITS")},
             "summary":     summary,
             "description": description,
-            "issuetype":   {"name": issue_type},
+            "issuetype":   {"name": "Task"},
             "priority":    {"name": priority}
         }
     }
@@ -70,39 +49,33 @@ def create_issue(summary, description_text,
         )
 
         if response.status_code == 201:
-            key = response.json()["key"]
-            return key
+            return response.json()["key"]
 
         elif response.status_code == 400:
             print(f"  Jira 400: {response.json().get('errors')}")
         elif response.status_code == 401:
-            print("  Jira 401: Check email and token in .env")
+            print("  Jira 401 — check email and token in .env")
         elif response.status_code == 403:
-            print("  Jira 403: No permission to create tickets")
+            print("  Jira 403 — no permission to create tickets")
         else:
             print(f"  Jira {response.status_code}: {response.text}")
 
     except requests.exceptions.Timeout:
-        print("  Jira timeout — not responding")
+        print("  Jira timed out")
     except requests.exceptions.ConnectionError:
-        print("  Jira connection error — check JIRA_BASE_URL")
+        print("  Cannot connect to Jira — check JIRA_BASE_URL")
 
     return None
 
 
-# ============================================================
-# GET ISSUE STATUS
-# GET /rest/api/3/issue/{issueKey}
-# Returns current status name
-# ============================================================
 def get_issue_status(issue_key):
     """
     Gets the current status of a Jira ticket.
-    Returns status name string or None on failure.
+    Returns dict with status and resolution, or None on failure.
     """
 
     url    = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
-    params = {"fields": "status,resolution,assignee"}
+    params = {"fields": "status,resolution"}
 
     try:
         response = requests.get(
@@ -116,12 +89,9 @@ def get_issue_status(issue_key):
         if response.status_code == 200:
             fields = response.json()["fields"]
             return {
-                "status":     fields["status"]["name"],
-                "resolution": fields.get("resolution", {}).get("name")
-                              if fields.get("resolution") else None,
-                "assignee":   fields.get("assignee", {}).get(
-                              "emailAddress") if fields.get("assignee")
-                              else None
+                "status": fields["status"]["name"],
+                "resolution": fields["resolution"]["name"]
+                              if fields.get("resolution") else None
             }
 
         elif response.status_code == 404:
@@ -135,85 +105,10 @@ def get_issue_status(issue_key):
     return None
 
 
-# ============================================================
-# GET TRANSITIONS
-# GET /rest/api/3/issue/{issueKey}/transitions
-# Returns list of available transitions with IDs
-# Must use ID not name to transition a ticket
-# ============================================================
-def get_transitions(issue_key):
-    """
-    Gets available workflow transitions for a ticket.
-    Returns dict mapping transition name to ID.
-    """
-
-    url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
-
-    try:
-        response = requests.get(
-            url,
-            headers=JIRA_HEADERS,
-            auth=JIRA_AUTH,
-            timeout=10
-        )
-
-        if response.status_code == 200:
-            transitions = response.json()["transitions"]
-            return {
-                t["to"]["name"]: t["id"]
-                for t in transitions
-            }
-
-    except Exception as e:
-        print(f"  Transitions error: {e}")
-
-    return {}
-
-
-# ============================================================
-# TRANSITION ISSUE
-# POST /rest/api/3/issue/{issueKey}/transitions
-# Body: { "transition": { "id": "transition-id" } }
-# Response: 204 No Content = success
-# ============================================================
-def transition_issue(issue_key, transition_id):
-    """
-    Moves a ticket to a new status using transition ID.
-    Returns True on success, False on failure.
-    204 No Content = success — no body returned.
-    """
-
-    url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
-
-    payload = {"transition": {"id": transition_id}}
-
-    try:
-        response = requests.post(
-            url,
-            headers=JIRA_HEADERS,
-            auth=JIRA_AUTH,
-            json=payload,
-            timeout=10
-        )
-
-        # 204 = success — no body
-        return response.status_code == 204
-
-    except Exception as e:
-        print(f"  Transition error: {e}")
-        return False
-
-
-# ============================================================
-# ADD COMMENT
-# POST /rest/api/3/issue/{issueKey}/comment
-# Comment body also requires ADF format
-# Response: 201 Created
-# ============================================================
 def add_comment(issue_key, comment_text):
     """
-    Adds a comment to an existing Jira ticket.
-    Comment body uses ADF format — same as description.
+    Adds a comment to a Jira ticket.
+    Comment body requires ADF format — same as description.
     Returns True on success.
     """
 
@@ -245,35 +140,28 @@ def add_comment(issue_key, comment_text):
         return False
 
 
-# ============================================================
-# SEARCH WITH JQL
-# POST /rest/api/3/issue/search
-# JQL = Jira Query Language — like SQL for Jira
-# Used for SLA monitoring and overdue ticket detection
-# ============================================================
 def search_issues(jql, fields=None):
     """
-    Searches Jira tickets using JQL query.
-    Used for SLA breach detection and overdue monitoring.
-    Returns list of issue objects.
+    Searches Jira tickets using JQL.
+    JQL is Jira Query Language — like SQL for Jira.
+    Used for SLA breach detection.
+    Returns list of issues.
     """
 
-    url = f"{JIRA_BASE_URL}/rest/api/3/issue/search"
-
-    payload = {
+    url    = f"{JIRA_BASE_URL}/rest/api/3/issue/search"
+    params = {
         "jql":        jql,
-        "fields":     fields or ["summary", "status",
-                                  "assignee", "created",
-                                  "priority"],
+        "fields":     ",".join(fields or ["summary", "status",
+                                           "assignee", "created"]),
         "maxResults": 50
     }
 
     try:
-        response = requests.post(
+        response = requests.get(
             url,
             headers=JIRA_HEADERS,
             auth=JIRA_AUTH,
-            json=payload,
+            params=params,
             timeout=10
         )
 
