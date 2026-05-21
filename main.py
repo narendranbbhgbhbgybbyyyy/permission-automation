@@ -1,6 +1,4 @@
-# main.py
-# Entry point for the permission request automation system.
-# Accepts input from command line or a JSON file.
+
 
 import sys
 import os
@@ -22,9 +20,7 @@ def get_input_from_commandline():
 
 
 def get_input_from_file(filepath):
-    """
-    Reads request details from a JSON file.
-    Used for automated triggers from HR systems.
+  
 
     Expected format:
     {
@@ -32,7 +28,7 @@ def get_input_from_file(filepath):
         "system": "SharePoint-ReadOnly",
         "justification": "Required for Q3 project"
     }
-    """
+    
     try:
         with open(filepath, "r") as f:
             data = json.load(f)
@@ -52,10 +48,7 @@ def get_input_from_file(filepath):
 
 
 def check_sla():
-    """
-    Checks open approval tickets for SLA breaches.
-    Reads from audit log and checks each ticket directly in Jira.
-    """
+  
     print("\nChecking for SLA breaches...")
     overdue = check_sla_breaches(JIRA_PROJECT)
 
@@ -68,7 +61,7 @@ def check_sla():
 
 
 def show_menu():
-    """Shows the main menu."""
+   
     print("\n" + "=" * 55)
     print("Permission Request Automation System")
     print("=" * 55)
@@ -91,7 +84,7 @@ if __name__ == "__main__":
         show_log()
         sys.exit(0 if success else 1)
 
-    # Otherwise show menu
+   
     while True:
         show_menu()
         choice = input("\nEnter choice: ").strip()
